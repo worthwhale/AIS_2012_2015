@@ -1,0 +1,62 @@
+---
+title: "2012-2015 AIS"
+author: "Shellby Johnson"
+date: "November 5, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(tidyverse)
+library(RPostgreSQL)
+
+```
+
+```{r}
+
+AIS_12_15 <- read_csv("ais_2012_2015.csv")
+
+#Connecting R to Nik's AIS database
+
+con = dbConnect(PostgreSQL(), 
+                    host = "128.111.110.129", 
+                    port = "5432", 
+                    user = "shellby", 
+                    password = "PerhapsSpendAngry", 
+                    dbname = "ais" )
+
+query = "SELECT * FROM vessels;" #Queried all of the vessel data 
+
+
+All_Vessel_df = dbGetQuery(con, query) #created a new dataframe with all current satellite AIS vessel data (as of 10/19/19)
+
+
+```
+
+
+
+```{r}
+
+#Filtering the AIS data to exclude items that have "NA" in the mmsi column, so that I'm only working with available mmsi numbers
+
+mmsi_only <- filter(All_Vessel_df, mmsi != "NA")
+
+#Re-merging with this df that has removed "NA" mmsi values
+
+MMSI_merge <- merge(mmsi_only, AIS_12_15, by = "mmsi", all.y = TRUE)
+
+MMSI_merge2 <- merge(mmsi_only, AIS_12_15, by = "mmsi") #merging  dfs without keeping all AIS_12_15 values to compare
+
+```
+
+```{r}
+#Convert MMSI_merge to a .csv file
+
+write.csv(MMSI_merge, "2012_2015_MMSI_merge.csv")
+
+```
+
