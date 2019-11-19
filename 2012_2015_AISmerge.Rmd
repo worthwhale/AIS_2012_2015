@@ -18,9 +18,13 @@ library(RPostgreSQL)
 
 ```{r}
 
+#Read in all of the 2012-2015 AIS data that Callie cleaned up (this data is missing vessel info, which we will get from Niks satellite database later via a merge)
+
 AIS_12_15 <- read_csv("ais_2012_2015.csv")
 
-#Connecting R to Nik's AIS database
+###############################################################################
+
+#Connecting R to Nik's satellite AIS database with database credentials
 
 con = dbConnect(PostgreSQL(), 
                     host = "128.111.110.129", 
@@ -29,32 +33,40 @@ con = dbConnect(PostgreSQL(),
                     password = "PerhapsSpendAngry", 
                     dbname = "ais" )
 
+
+#Queried all of the vessel data from the satellite database
+
 query = "SELECT * FROM vessels;" #Queried all of the vessel data 
 
+#################################################################################
 
-All_Vessel_df = dbGetQuery(con, query) #created a new dataframe with all current satellite AIS vessel data (as of 10/19/19)
+#create a new dataframe with all current satellite AIS vessel data
+
+All_Vessel_df = dbGetQuery(con, query) 
 
 
 ```
 
 
-
 ```{r}
 
-#Filtering the AIS data to exclude items that have "NA" in the mmsi column, so that I'm only working with available mmsi numbers
+#Filtering the satellite AIS data to remove items that have "NA" in the mmsi column
 
 mmsi_only <- filter(All_Vessel_df, mmsi != "NA")
 
-#Re-merging with this df that has removed "NA" mmsi values
+###############################################################################
+
+
+#Merging the filtered satellite data with 2012-2015 data by mmsi; 'all.y = TRUE' keeps the unmatched entries from the 12-15 data, so those aren't thrown out. Unmatched entries will have "NA" for vessel info
 
 MMSI_merge <- merge(mmsi_only, AIS_12_15, by = "mmsi", all.y = TRUE)
 
-MMSI_merge2 <- merge(mmsi_only, AIS_12_15, by = "mmsi") #merging  dfs without keeping all AIS_12_15 values to compare
 
 ```
 
 ```{r}
-#Convert MMSI_merge to a .csv file
+
+#Convert MMSI_merge to a .csv file so that Callie can bind to the 2017-2019 data; this gigantic dataset will then be imported into the SQLite database as all AIS data.
 
 write.csv(MMSI_merge, "2012_2015_MMSI_merge.csv")
 
